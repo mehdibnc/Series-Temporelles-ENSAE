@@ -1,50 +1,100 @@
 
-setwd("../projet")
+setwd("D:/Documents/ensae cours/S2/Serie temporelles/projet")
 
 #Requirements
-library(readxl)
 library(zoo)
 library(tseries)
+library(readr)
+library(xtable)
 
 
 #Chargement des données
-data <- read_excel("../series_longues_ipi_201712 (1).xls")
+data <- read.csv("D:/Documents/ensae cours/S2/Serie temporelles/projet/valeurs_mensuelles.csv",sep=";",header = TRUE)
 
-#Nettoyage et formats
-st <- data[,c("NAF rev. 2","(C2)")]
-colnames(st) <- c("Date","valeur")
-st$Date <- lapply(st$Date,as.character)
+data<-na.omit(data)
+data <- data[2:nrow(data),] #le readcsv a mis une ligne de caracteres au debut du coup je l'enleve
+colnames(data) <- c("Date","valeur","code")
+data <- data[,c("Date","valeur")]
 
-date <- function(x){
-  return(paste(paste(substr(x, 1, 4),paste("-",substr(x, 5, 6),sep=""),sep=""),"-01",sep=""))
-}
+test <- data[1:12,]
+train <- data[13:nrow(data),]
 
-st$Date <- lapply(st$Date,date)
-st[['Date']] <- strptime(st[['Date']], format='%Y-%m-%d')
-
-
-#plot de la série temp
-plot(st$valeur ~ as.Date(st$Date),type="l",xlab="Temps",ylab = "S_t")
-
+#Stats desc
+summary(data$valeur)
 
 #Question 2
+
+serie_indice = stats::ts(train$valeur, start=c(1990,1), end=c(2019,01), frequency=12)
+plot.ts(serie_indice)
+
 #La série n'a pas l'air d'être stationnaire à l'oeil.
 #vérifions d'abord par un acf (non formel) puis par
 # un test de Dickey Fuller: 
 
 #acf
-acf(st$valeur, lag.max=334) #oulala !! c'est pas très bon 
+acf(serie_indice, lag.max=349)
+#La lente décroissance des autocorrelations (significativement différentes de 0) indique
+#de la non stationnarité.
+
 
 #DF
-adf.test(st$valeur,k=6) #on ne rejette pas la non stationnarité
+adf.test(serie_indice) #on ne rejette pas la non stationnarité
+
+#PP test
+pp.test(serie_indice) #ne rejette pas non plus la stationnarité.
 
 
 #tranformation pour rendre stationnaire.
-Dt<-diff(st$valeur) #diff à l'ordre 1
-plot(Dt ~ as.Date(st$Date)[2:length(st$Date)],type="l",xlab="Temps",ylab = "D_t",col="orange") #top
+Dt<-diff(serie_indice) #diff à l'ordre 1
+plot(Dt, ylab="Série différenciée")
 
 
-acf(Dt) #bizarre 
-adf.test(Dt,k=0) #ça c'est ok pour k=0,1,2,3,4,5,6
+
+acf(Dt, lag.max = 50)
+pacf(Dt,lag.max = 50)
+adf.test(Dt) #ça c'est ok pour k=0,1,2,3,4,5,6
+
+#PP test
+pp.test(Dt)
+
 
 #Question 3
+plot.ts(Dt,ylab="Série Différenciée")
+
+
+
+
+#Partie 2 
+#Quesion 4 : 
+monthplot(serie_indice)
+
+
+#Identification du modèle 
+
+#arima (1,0,0) soit AR(1)
+arima(serie_indice,c(1,0,0))
+#le coeff ar1 est proche de 1 ce qui confirme la non stationnaité comme on le savait déjà
+
+#arima (1,1,0)
+arima(serie_indice,c(1,1,0))
+
+#SARIMA_12 (1,1,0)(1,1,0)
+arima(serie_indice, c(1,1,0), seasonal=list(order=c(1,1,0),period=12))
+
+#SARIMA_12 (1,1,1)(1,1,0)
+arima(serie_indice, c(1,1,1), seasonal=list(order=c(1,1,0),period=12))
+
+#SARIMA_12 (1,1,1)(1,1,1)
+arima(serie_indice, c(1,1,1), seasonal=list(order=c(1,1,1),period=12))
+
+#SARIMA_12 (1,1,1)(2,1,1)
+model<-arima(serie_indice, c(1,1,1), seasonal=list(order=c(2,1,1),period=12))
+#selon AIC c'est lui le mieux
+
+
+
+
+#Etude des résidus
+plot(density(residuals(model))) #pas mal
+
+ks.test(residuals(model),"pnorm",0,1)
