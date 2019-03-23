@@ -81,20 +81,33 @@ arima(serie_indice,c(1,1,0))
 #SARIMA_12 (1,1,0)(1,1,0)
 arima(serie_indice, c(1,1,0), seasonal=list(order=c(1,1,0),period=12))
 
+
 #SARIMA_12 (1,1,1)(1,1,0)
 arima(serie_indice, c(1,1,1), seasonal=list(order=c(1,1,0),period=12))
+
+#SARIMA_12 (1,1,1)(0,1,1)
+model <- arima(serie_indice, c(1,1,1), seasonal=list(order=c(0,1,1),period=12))
+#le mieux :)
 
 #SARIMA_12 (1,1,1)(1,1,1)
 arima(serie_indice, c(1,1,1), seasonal=list(order=c(1,1,1),period=12))
 
 #SARIMA_12 (1,1,1)(2,1,1)
-model<-arima(serie_indice, c(1,1,1), seasonal=list(order=c(2,1,1),period=12))
-#selon AIC c'est lui le mieux
+arima(serie_indice, c(1,1,1), seasonal=list(order=c(2,1,1),period=12))
+
 
 
 
 
 #Etude des résidus
-plot(density(residuals(model))) #pas mal
+resi <- residuals(model)
 
-ks.test(residuals(model),"pnorm",0,1)
+plot(density(resi)) #pas mal
+
+ks.test(resi,"pnorm",0,1)
+
+acf(resi) #fantastique
+pacf(resi) #fantastique
+
+ret=c(1:12)
+Box.test.2(model,nlag=ret,type="Ljung-Box",fitdf=3)
