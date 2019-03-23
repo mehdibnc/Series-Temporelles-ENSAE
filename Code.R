@@ -6,6 +6,11 @@ library(zoo)
 library(tseries)
 library(readr)
 library(xtable)
+library(lubridate)
+library(radarchart)
+library(Metrics)
+library(caschrono)
+
 
 
 #Chargement des données
@@ -24,7 +29,7 @@ summary(data$valeur)
 
 #Question 2
 
-serie_indice = stats::ts(train$valeur, start=c(1990,1), end=c(2019,01), frequency=12)
+serie_indice = stats::ts(train[seq(dim(train)[1],1),]$valeur, start=c(1990,1), end=c(2018,1), frequency=12)
 plot.ts(serie_indice)
 
 #La série n'a pas l'air d'être stationnaire à l'oeil.
@@ -111,3 +116,51 @@ pacf(resi) #fantastique
 
 ret=c(1:12)
 Box.test.2(model,nlag=ret,type="Ljung-Box",fitdf=3)
+
+
+# Superposition des années en radar
+
+tr <- function(x){
+  return(paste(x,"01",sep="-"))
+}
+
+train$Date <- lapply(train$Date,tr)
+train$Date <- lapply(train$Date,as.Date)
+
+train$month <- lapply(train$Date,month)
+train$year <- lapply(train$Date,year)
+toradar <- train[,c("year","month","valeur")]
+
+
+te <- t(toradar[toradar$year == 1990,]$valeur)
+for (i in 1991:2017){
+  aux <- t(toradar[toradar$year == i,]$valeur)
+  te<-rbind(te,aux)
+}
+allobs<-data.frame(te)
+colnames(allobs) <- c("Dec","Nov","Oct","Sep","Aout","Jui","Juin","Mai","Avr","Mar","Fev","Jan")
+rownames(allobs) <- seq(1990:2017)+1990
+
+
+s <- data.frame(t(allobs))
+s <- cbind(data.frame(rownames(s)),s)
+colnames(s) <- c("Label",seq(1990:2017)+1990)
+
+chartJSRadar(s, showToolTipLabel=TRUE,main = "Radar plot de la série originale",labelSize = 14,polyAlpha=0.025)
+
+
+#Predictions 
+
+predictions <- predict(model,n.ahead = 12)
+plot(serie_indice, ylab="")
+lines(predictions$pred,col="red")
+lines(predictions$pred +2*predictions$se,col="blue")
+lines(predictions$pred -2*predictions$se,col="blue")
+lines(ts(test[seq(dim(test)[1],1),]$valeur, start=c(2018,2), end=c(2019,1), frequency=12),col="green")
+
+
+
+mape(predictions$pred,test[seq(dim(test)[1],1),]$valeur)
+mae(predictions$pred,test[seq(dim(test)[1],1),]$valeur)
+
+
