@@ -21,16 +21,16 @@ data <- data[2:nrow(data),] #le readcsv a mis une ligne de caracteres au debut d
 colnames(data) <- c("Date","valeur","code")
 data <- data[,c("Date","valeur")]
 
-test <- data[1:12,]
-train <- data[13:nrow(data),]
+test <- data[1:2,]
+train <- data[3:nrow(data),]
 
 #Stats desc
 summary(data$valeur)
 
 #Question 2
 
-serie_indice = stats::ts(train[seq(dim(train)[1],1),]$valeur, start=c(1990,1), end=c(2018,1), frequency=12)
-plot.ts(serie_indice)
+serie_indice = stats::ts(train[seq(dim(train)[1],1),]$valeur, start=c(1990,1), end=c(2018,11), frequency=12)
+plot.ts(serie_indice,ylab="Série Brute")
 
 #La série n'a pas l'air d'être stationnaire à l'oeil.
 #vérifions d'abord par un acf (non formel) puis par
@@ -76,9 +76,6 @@ monthplot(serie_indice)
 
 #Identification du modèle 
 
-#arima (1,0,0) soit AR(1)
-arima(serie_indice,c(1,0,0))
-#le coeff ar1 est proche de 1 ce qui confirme la non stationnaité comme on le savait déjà
 
 #arima (1,1,0)
 arima(serie_indice,c(1,1,0))
@@ -151,12 +148,15 @@ chartJSRadar(s, showToolTipLabel=TRUE,main = "Radar plot de la série originale"
 
 #Predictions 
 
-predictions <- predict(model,n.ahead = 12)
-plot(serie_indice, ylab="")
+predictions <- predict(model,n.ahead = 2)
+history <- ts(window(serie_indice, start=c(2018,1)), start=c(2018,1), end=c(2019,1), frequency=12)
+history[12] <-""
+history[13] <- ""
+plot(history, ylab="",ylim=c(60,130))
 lines(predictions$pred,col="red")
 lines(predictions$pred +2*predictions$se,col="blue")
 lines(predictions$pred -2*predictions$se,col="blue")
-lines(ts(test[seq(dim(test)[1],1),]$valeur, start=c(2018,2), end=c(2019,1), frequency=12),col="green")
+lines(ts(test[seq(dim(test)[1],1),]$valeur, start=c(2018,12), end=c(2019,1), frequency=12),col="green")
 
 
 
