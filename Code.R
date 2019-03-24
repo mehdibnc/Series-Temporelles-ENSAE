@@ -10,7 +10,7 @@ library(lubridate)
 library(radarchart)
 library(Metrics)
 library(caschrono)
-
+library(ellipse)
 
 
 #Chargement des données
@@ -28,7 +28,6 @@ train <- data[3:nrow(data),]
 summary(data$valeur)
 
 #Question 2
-
 serie_indice = stats::ts(train[seq(dim(train)[1],1),]$valeur, start=c(1990,1), end=c(2018,11), frequency=12)
 plot.ts(serie_indice,ylab="Série Brute")
 
@@ -41,78 +40,83 @@ acf(serie_indice, lag.max=349)
 #La lente décroissance des autocorrelations (significativement différentes de 0) indique
 #de la non stationnarité.
 
-
 #DF
 adf.test(serie_indice) #on ne rejette pas la non stationnarité
 
 #PP test
 pp.test(serie_indice) #ne rejette pas non plus la stationnarité.
 
-
 #tranformation pour rendre stationnaire.
 Dt<-diff(serie_indice) #diff à l'ordre 1
 plot(Dt, ylab="Série différenciée")
 
-
-
 acf(Dt, lag.max = 50)
 pacf(Dt,lag.max = 50)
 adf.test(Dt) #ça c'est ok pour k=0,1,2,3,4,5,6
-
 #PP test
 pp.test(Dt)
 
-
 #Question 3
 plot.ts(Dt,ylab="Série Différenciée")
-
-
 
 
 #Partie 2 
 #Quesion 4 : 
 monthplot(serie_indice)
 
-
 #Identification du modèle 
-
-
 #arima (1,1,0)
 arima(serie_indice,c(1,1,0))
+bic=AIC(arima(serie_indice,c(1,1,0)),k = log(length(serie_indice)))
+bic
 
 #SARIMA_12 (1,1,0)(1,1,0)
 arima(serie_indice, c(1,1,0), seasonal=list(order=c(1,1,0),period=12))
-
+bic=AIC(arima(serie_indice, c(1,1,0), seasonal=list(order=c(1,1,0),period=12)),k = log(length(serie_indice)))
+bic
 
 #SARIMA_12 (1,1,1)(1,1,0)
 arima(serie_indice, c(1,1,1), seasonal=list(order=c(1,1,0),period=12))
+bic=AIC(arima(serie_indice, c(1,1,1), seasonal=list(order=c(1,1,0),period=12)),k = log(length(serie_indice)))
+bic
+
+#SARIMA_12 (1,1,1)(1,1,1)
+arima(serie_indice, c(1,1,1), seasonal=list(order=c(1,1,1),period=12))
+bic=AIC(arima(serie_indice, c(1,1,1), seasonal=list(order=c(1,1,1),period=12)),k = log(length(serie_indice)))
+bic
 
 #SARIMA_12 (1,1,1)(0,1,1)
 model <- arima(serie_indice, c(1,1,1), seasonal=list(order=c(0,1,1),period=12))
 #le mieux :)
-
-#SARIMA_12 (1,1,1)(1,1,1)
-arima(serie_indice, c(1,1,1), seasonal=list(order=c(1,1,1),period=12))
-
+bic=AIC(arima(serie_indice, c(1,1,1), seasonal=list(order=c(0,1,1),period=12)),k = log(length(serie_indice)))
+bic
 #SARIMA_12 (1,1,1)(2,1,1)
 arima(serie_indice, c(1,1,1), seasonal=list(order=c(2,1,1),period=12))
+bic=AIC(arima(serie_indice, c(1,1,1), seasonal=list(order=c(2,1,1),period=12)),k = log(length(serie_indice)))
+bic
 
 
-
-
-
-#Etude des résidus
+#Etude des résidus du modèle retenu
 resi <- residuals(model)
-
 plot(density(resi)) #pas mal
-
 ks.test(resi,"pnorm",0,1)
-
 acf(resi) #fantastique
 pacf(resi) #fantastique
-
 ret=c(1:12)
 Box.test.2(model,nlag=ret,type="Ljung-Box",fitdf=3)
+
+#plot des résidues par rapport à la normale
+resi <- residuals(model)
+densité_residus = density(resi)
+densité_théorique = dnorm(densité_residus$x, mean=mean(resi),sd=sd(resi))
+hist(resi, breaks = 100,main = "", xlab = "Résidus de l'estimation
+     par SARIMA (1,1,1)(0,1,1)", ylab = "Probabilité",freq=FALSE)
+lines(densité_residus,xaxt="n",yaxt="n",ylab="",xlab="",main="",col = "blue",lwd = 2)
+lines(densité_residus$x,densité_théorique,xaxt="n",yaxt="n",ylab="",xlab="",main="",col =
+        "blue",lwd=2,lty = 2)
+
+#significativité des coefs du modèle ?
+coeftest(model) #Tous à 1%
 
 
 # Superposition des années en radar
@@ -144,6 +148,33 @@ s <- cbind(data.frame(rownames(s)),s)
 colnames(s) <- c("Label",seq(1990:2017)+1990)
 
 chartJSRadar(s, showToolTipLabel=TRUE,main = "Radar plot de la série originale",labelSize = 14,polyAlpha=0.025)
+
+#Partie 3
+
+#Question 5 : niveau code RAS
+#Question 6 : RAS niveau code
+
+#Question 7
+
+#Prédiction de XT+1 et XT+2:
+#t+1
+x_1=predict(model, n.ahead=2)$pred[1]
+#t+2
+x_2=predict(model, n.ahead=2)$pred[2]
+
+#Variance estimée des résidus du modèle
+sigma2=var(residuals(model))
+
+#Paramètre theta1 qui intervient dans la variance de la prévision de XT+2
+theta1=model$coef[1]
+
+#Matrice de variance-covariance
+V2=sigma2*(1+(1+theta1)^2)
+cov=sigma2*(1+theta1)
+#Matrice Sigma de la formule de l'ellipse déterminée uestion 5
+Sigma=matrix(c(sigma2,cov,cov,V2),nrow=2, ncol=2)
+
+plot(ellipse(Sigma, centre=c(x_1,x_2)), type="l", main="", xlab = "XT+1", ylab = "XT+2")
 
 
 #Predictions 
