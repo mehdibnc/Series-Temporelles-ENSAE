@@ -196,10 +196,12 @@ mae(predictions$pred,test[seq(dim(test)[1],1),]$valeur)
 
 ### Prévision de Décembre 2018 et Janvier 2019:
 library(forecast)
-vecteur_prev = data[1:12,]
-vecteur_prev = stats::ts(vecteur_prev[seq(dim(vecteur_prev)[1],1),]$valeur, start=c(2018,1), end=c(2019,1), frequency=12)
-apredire = data
-apredirets = ts(apredire[seq(dim(apredire)[1],1),]$valeur, start=c(1990,1), end=c(2019,1), frequency=12)
+
+vecteur_1819 = data
+apredirets = ts(vecteur_1819[seq(dim(vecteur_1819)[1],1),]$valeur, start=c(1990,1), end=c(2019,1), frequency=12)
+
+serie_indice = ts(train[seq(dim(train)[1],1),]$valeur, start=c(1990,1), end=c(2018,11), frequency=12)
+model <- arima(serie_indice, c(1,1,1), seasonal=list(order=c(0,1,1),period=12))
 predictions = forecast(model,2)
 
 plot(apredirets[(349-12):349], type = "l", lty=c(1,2,2,3), xlab = "", ylab = "Cokéfaction et Raffinage", ylim = c(60,150), xaxt='n', lwd=2, main='')
@@ -208,10 +210,6 @@ lines(seq(12,13,1), predictions$mean, "l", col = 'blue' , lwd = 2)
 lines(seq(12,13,1), predictions$lower[,2], 'l', col='blue' ,lty = 2,lwd=1.5)
 lines(seq(12,13,1), predictions$upper[,2], 'l', col = 'blue', lty = 2,lwd=1.5)
 legend("topleft", c("Série observée", "Prévisions", "Intervalle à 95%"), lwd=1, col =c("black","blue","blue"),lty=c(1,1,2),cex=.8)
-
-
-
-
 
 
 
