@@ -167,10 +167,11 @@ sigma2=var(residuals(model))
 
 #Paramètre theta1 qui intervient dans la variance de la prévision de XT+2
 theta1=model$coef[1]
+phi1 = model$coef[3]
 
 #Matrice de variance-covariance
-V2=sigma2*(1+(1+theta1)^2)
-cov=sigma2*(1+theta1)
+V2=sigma2*(1+(1+phi1-theta1)^2)
+cov=sigma2*(1+phi1-theta1)
 #Matrice Sigma de la formule de l'ellipse déterminée uestion 5
 Sigma=matrix(c(sigma2,cov,cov,V2),nrow=2, ncol=2)
 
