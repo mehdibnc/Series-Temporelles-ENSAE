@@ -189,10 +189,29 @@ lines(predictions$pred,col="red")
 lines(predictions$pred +2*predictions$se,col="blue")
 lines(predictions$pred -2*predictions$se,col="blue")
 lines(ts(test[seq(dim(test)[1],1),]$valeur, start=c(2018,12), end=c(2019,1), frequency=12),col="green")
-
-
-
 mape(predictions$pred,test[seq(dim(test)[1],1),]$valeur)
 mae(predictions$pred,test[seq(dim(test)[1],1),]$valeur)
+
+
+
+### Prévision de Décembre 2018 et Janvier 2019:
+library(forecast)
+vecteur_prev = data[1:12,]
+vecteur_prev = stats::ts(vecteur_prev[seq(dim(vecteur_prev)[1],1),]$valeur, start=c(2018,1), end=c(2019,1), frequency=12)
+apredire = data
+apredirets = ts(apredire[seq(dim(apredire)[1],1),]$valeur, start=c(1990,1), end=c(2019,1), frequency=12)
+predictions = forecast(model,2)
+
+plot(apredirets[(349-12):349], type = "l", lty=c(1,2,2,3), xlab = "", ylab = "Cokéfaction et Raffinage", ylim = c(60,150), xaxt='n', lwd=2, main='')
+axis(1,at=c(1,4,8,13),labels=c("janv-2018","avril-2018","août-2018","janv-2019"),cex.axis=.8)
+lines(seq(12,13,1), predictions$mean, "l", col = 'blue' , lwd = 2)
+lines(seq(12,13,1), predictions$lower[,2], 'l', col='blue' ,lty = 2,lwd=1.5)
+lines(seq(12,13,1), predictions$upper[,2], 'l', col = 'blue', lty = 2,lwd=1.5)
+legend("topleft", c("Série observée", "Prévisions", "Intervalle à 95%"), lwd=1, col =c("black","blue","blue"),lty=c(1,1,2),cex=.8)
+
+
+
+
+
 
 
